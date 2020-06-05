@@ -32,17 +32,8 @@ end
 function relay_check(register)
     local relay1, relay2 = 0
 
-    if register[1]&2^2 ~=0 then
-        relay1 = true
-    else 
-        relay1 = false
-    end
-    
-    if register[1]&2^10 ~=0 then
-        relay2 = true
-    else 
-        relay2 = false
-    end
+    relay1 = (register[1]&2^2 ~= 0) 
+    relay2 = (register[1]&2^10 ~= 0) 
    
     return relay1, relay2
 end
