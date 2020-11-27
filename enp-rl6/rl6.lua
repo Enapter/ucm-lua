@@ -115,7 +115,7 @@ enapter:register_command_handler("open", function (args)
     if args and args["id"] ~= nil then 
         id = math.floor(args["id"])
         print("Received open command for relay " .. id)
-        if rl6.get(id) == 0 then 
+        if rl6.get(id) == false then 
             return 0
         else
             if rl6.open(id) == 0 then
@@ -137,7 +137,7 @@ enapter:register_command_handler("close", function (args)
     if args and args["id"] ~= nil then 
         id = math.floor(args["id"])
         print("Received close command for relay " .. id)
-        if rl6.get(id) == 1 then 
+        if rl6.get(id) == true then 
             return 0
         else
             if rl6.close(id) == 0 then
