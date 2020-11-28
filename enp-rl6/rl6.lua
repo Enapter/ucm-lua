@@ -155,6 +155,25 @@ enapter:register_command_handler("close", function (args)
     end 
 end)
 
+enapter:register_command_handler("impulse", function (args)
+    if args and args["id"] ~= nil and args["time"] ~= nil then 
+        id = math.floor(args["id"])
+        period = math.floor(args["time"])
+        print("Received impulse command for relay " .. id .. " for period " .. period .. " ms")
+        if rl6.impulse(id, period) == 0 then
+            print("Relay " .. id .. " impulsed for period " .. period .. " ms")
+            return 0
+        else
+            print("Error impulsing relay " .. id .. " for period " .. period .. " ms")
+            return 1
+        end
+    else
+        print("Wrong arguments for impulse relay command")
+        return 1
+    end 
+end)
+
+
 enapter:register_command_handler("set", function (args)
     if args then
         result = 1
