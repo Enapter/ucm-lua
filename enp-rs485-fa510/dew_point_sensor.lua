@@ -1,4 +1,4 @@
---[[ 
+--[[
 Copyright 2020 Enapter, Tatyana Yugaj <tyugaj@enapter.com>
 Licensed under the Apache License, Version 2.0 (the “License”);
 you may not use this file except in compliance with the License.
@@ -11,8 +11,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 See the License for the specific language governing permissions and limitations under the License.
 --]]
 
-enapter = EnapterCloud.new("dewcsi", "v1")
-mb = Modbus.new(19200, 8, "E", 1)
+enapter = cloud.new("dewcsi", "v1")
+mb = modbus.new(19200, 8, "E", 1)
 address = 1
 
 function tofloat(register)
@@ -25,14 +25,14 @@ function todate(register)
     return string.unpack(">I4", raw_str)
 end
 
-system.run_every(30000, function()
-    enapter:register({ vendor = "CS Instruments", model = "FA 510" })
-end)
- 
-system.run_every(1000, function()
+function registration()
+    enapter:send_registration({ vendor = "CS Instruments", model = "FA 510" })
+end
+
+function metrics()
     local telemetry = {}
     local success = false
-    
+
     local result, data = mb:read_holding(address, 10, 2, 1000)
     if result == OK then
         telemetry["calibration_due"] = todate(data)
@@ -50,13 +50,13 @@ system.run_every(1000, function()
         telemetry["dew_point"] = tofloat(data)
         success = true
     end
-         
+
     local result, data = mb:read_holding(address, 1020, 2, 1000)
     if result == OK then
-        telemetry["partial_vapor_pressure"] = tofloat(data)/1000 -- from hPa to bar
+        telemetry["partial_vapor_pressure"] = tofloat(data) / 1000 -- from hPa to bar
         success = true
     end
-    
+
     local result, data = mb:read_holding(address, 1022, 2, 1000)
     if result == OK then
         telemetry["atm_dew_point"] = tofloat(data)
@@ -69,11 +69,13 @@ system.run_every(1000, function()
         success = true
         end
     end
-   
+
     if success then
-        enapter:telemetry(telemetry)
+        enapter:send_telemetry(telemetry)
     else
-        enapter:telemetry({ error = Modbus.read_error(result) })
+        enapter:send_telemetry({ error = modbus.err_to_str(result) })
     end
-end)
-    
+end
+
+scheduler.add(10000, registration)
+scheduler.add(1000, metrics)

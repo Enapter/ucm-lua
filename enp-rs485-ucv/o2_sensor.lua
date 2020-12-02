@@ -1,4 +1,4 @@
---[[ 
+--[[
 Copyright 2020 Enapter, Tatyana Yugaj <tyugaj@enapter.com>
 Licensed under the Apache License, Version 2.0 (the “License”);
 you may not use this file except in compliance with the License.
@@ -11,41 +11,38 @@ Unless required by applicable law or agreed to in writing, software distributed 
 See the License for the specific language governing permissions and limitations under the License.
 --]]
 
-enapter = EnapterCloud.new("o2ucv", "v1")
-mb = Modbus.new(9600, 8, "N", 1)
+enapter = cloud.new("o2ucv", "v1")
+mb = modbus.new(9600, 8, "N", 1)
 address = 254
 
 function tofloat(register)
-    raw_str = string.pack("BBBB", register[1]>>8, register[1]&0xff, register[2]>>8, register[2]&0xff)
+    local raw_str = string.pack("BBBB", register[1]>>8, register[1]&0xff, register[2]>>8, register[2]&0xff)
     return string.unpack(">f", raw_str)
 end
 
 function point_unit_decode(register1, register2)
-    raw_str = string.pack("BB", register2[1]>>8, register2[1]&0xff)
+    local raw_str = string.pack("BB", register2[1]>>8, register2[1]&0xff)
 
-    local point = string.unpack(">I1", string.sub(raw_str,1,1)) 
+    local point = string.unpack(">I1", string.sub(raw_str,1,1))
     point = math.floor(point / 16)
-    
+
     return register1[1] / 10^point
 end
 
 function relay_check(register)
-    local relay1, relay2 = 0
-
-    relay1 = (register[1]&2^2 ~= 0) 
-    relay2 = (register[1]&2^10 ~= 0) 
-   
+    local relay1 = (register[1]&2^2 ~= 0)
+    local relay2 = (register[1]&2^10 ~= 0)
     return relay1, relay2
 end
 
-system.run_every(30000, function()
-    enapter:register({ vendor = "Sfere", model = "uCv" })
-end)
+function registration()
+    enapter:send_registration({ vendor = "Sfere", model = "uCv" })
+end
 
-system.run_every(1000, function()
+function metrics()
     local telemetry = {}
     local success = false
-    
+
     local result1, data1 = mb:read_holding(address, 1, 1, 1000)
     local result2, data2 = mb:read_holding(address, 2, 1, 1000)
     if (result1 == OK) and (result2 == OK) then
@@ -55,7 +52,7 @@ system.run_every(1000, function()
 
     local errors = {}
     local result, data = mb:read_holding(address, 50, 1, 1000)
-    if result == OK then       
+    if result == OK then
         if data[1]&2^9 ~= 0  then
             table.insert(errors, "measure_overload") 
         end
@@ -80,14 +77,14 @@ system.run_every(1000, function()
         telemetry["errors"] = table.unpack(errors)
         success = true
     end
-     
+
     local result1, data1 = mb:read_holding(address, 99, 1, 1000)
     local result2, data2 = mb:read_holding(address, 100, 1, 1000)
     local gas_acceptable = true
     if (result1 == OK) and (result2 == OK) then
         relay1, relay2 = relay_check(data1)
         relay3, relay4 = relay_check(data2)
-        
+
         if relay1 or relay2 or relay3 or relay4 then
             gas_acceptable = false
             telemetry["gas_acceptable"] = false
@@ -111,10 +108,13 @@ system.run_every(1000, function()
 
         success = true
     end
- 
+
     if success then
-        enapter:telemetry(telemetry)
+        enapter:send_telemetry(telemetry)
     else
-        enapter:telemetry({ error = Modbus.read_error(result) })
+        enapter:send_telemetry({ error = modbus.err_to_str(result) })
     end
-end)
+end
+
+scheduler.add(10000, registration)
+scheduler.add(1000, metrics)
