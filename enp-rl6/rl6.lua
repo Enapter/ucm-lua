@@ -1,5 +1,5 @@
 --[[ 
-Copyright 2020 Enapter, Nikolay V. Krasko <nikolay@enapter.com>
+Copyright 2020 Enapter
 Licensed under the Apache License, Version 2.0 (the “License”);
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at 
@@ -111,7 +111,7 @@ function metrics()
     enapter:send_telemetry(telemetry)
 end
 
-enapter:register_command_handler("open", function (args)
+enapter:register_command_handler("open", function (ctx, args)
     if args and args["id"] ~= nil then 
         id = math.floor(args["id"])
         print("Received open command for relay " .. id)
@@ -133,7 +133,7 @@ enapter:register_command_handler("open", function (args)
     end  
 end)
 
-enapter:register_command_handler("close", function (args)
+enapter:register_command_handler("close", function (ctx, args)
     if args and args["id"] ~= nil then 
         id = math.floor(args["id"])
         print("Received close command for relay " .. id)
@@ -155,7 +155,7 @@ enapter:register_command_handler("close", function (args)
     end 
 end)
 
-enapter:register_command_handler("impulse", function (args)
+enapter:register_command_handler("impulse", function (ctx, args)
     if args and args["id"] ~= nil and args["time"] ~= nil then 
         id = math.floor(args["id"])
         period = math.floor(args["time"])
@@ -174,7 +174,7 @@ enapter:register_command_handler("impulse", function (args)
 end)
 
 
-enapter:register_command_handler("set", function (args)
+enapter:register_command_handler("set", function (ctx, args)
     if args then
         result = 1
         for command, arg in pairs (args) do
