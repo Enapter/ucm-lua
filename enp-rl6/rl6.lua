@@ -1,5 +1,5 @@
 --[[ 
-Copyright 2020 Enapter
+Copyright 2021 Enapter
 Licensed under the Apache License, Version 2.0 (the “License”);
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at 
@@ -173,6 +173,34 @@ enapter:register_command_handler("impulse", function (ctx, args)
     end 
 end)
 
+enapter:register_command_handler("toggle", function (ctx, args)
+    if args and args["id"] ~= nil then 
+        id = math.floor(args["id"])
+        print("Received toggle command for relay " .. id)
+        if rl6.get(id) == true then 
+            if rl6.open(id) == 0 then
+                storage.write("r"..tostring(id), "0")
+                print("Relay " .. id .. " opened")
+                return 0
+            else
+                print("Error toggle/open relay " .. id)
+                return 1
+            end
+        else
+            if rl6.close(id) == 0 then
+                storage.write("r"..tostring(id), "1")
+                print("Relay " .. id .. " closed")
+                return 0
+            else
+                print("Error toggle/close relay " .. id)
+                return 1
+            end
+        end
+    else
+        print("Wrong arguments for open relay command")
+        return 1
+    end  
+end)
 
 enapter:register_command_handler("set", function (ctx, args)
     if args then
