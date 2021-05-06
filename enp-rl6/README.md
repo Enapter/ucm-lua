@@ -1,13 +1,13 @@
 ## First Start
 
-When ENP-RL6 edge processing script uploaded on brand new devices it enables the default configuration:
+When ENP-RL6 Blueprint uploaded on brand new devices it enables the default configuration:
 
 * All relays are set in **Open** state on boot.
 * In case of connection lost the relay status **stays at it was before disconnect**(Respect the state).
 
-## Blueprints Integration
+## Blueprint Commands
 
-This ENP-RL6 edge processing script procvides following high level functions which are available for Enapter Blueprints:
+This ENP-RL6 edge processing script provides following high level commands which are available at Enapter Blueprints:
 
 ### set ( { param = "on_boot" | "on_disconnect", value = "Open" | "Close" |  "Respect" } )
 
