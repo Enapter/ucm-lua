@@ -17,7 +17,7 @@ for relay = 1,6,1 do
     relay_status, result = storage.read("r"..tostring(relay))
     if result ~= 0 then
         enapter.log("Writing default value 0 for r" .. relay)
-        storage.write("r"..tostring(relay),"0")
+        storage.write("r"..tostring(relay), "Open")
     end
 end
 
