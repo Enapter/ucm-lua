@@ -1,0 +1,133 @@
+blueprint_spec: "device/1.0"
+
+display_name: Enapter ENP-RL6 Blueprint
+description: |
+  This Blueprint implements basic functionality of the ENP-RL6 UCM (https://handbook.enapter.com/modules/ENP-RL6/ENP-RL6.html). Feel free to modify for your own needs.
+
+icon: dip-switch
+
+communication_modules:
+    enp-rl6:
+        product: ENP-RL6
+        lua_file: rl6.lua
+
+command_groups:
+    control:
+        display_name: Control
+    settings:
+        display_name: Settings
+
+commands:
+    open:
+        group: control
+        display_name: Open Relay
+        description: Opens one of the relays
+        arguments:
+            id:
+                type: integer
+                display_name: Relay Number
+                enum:
+                    - 1
+                    - 2
+                    - 3
+                    - 4
+                    - 5
+                    - 6
+                default: 1
+        ui:
+            quick_access: true
+    close:
+        group: control
+        display_name: Close Relay
+        description: Close one of the relays
+        arguments:
+            id:
+                type: integer
+                display_name: Relay Number
+                enum:
+                    - 1
+                    - 2
+                    - 3
+                    - 4
+                    - 5
+                    - 6
+                default: 1
+        ui:
+            quick_access: true
+    impulse:
+        group: control
+        display_name: Implulse Relay for Period
+        description: Impluse one of the relays
+        arguments:
+            id:
+                type: integer
+                display_name: Relay Number
+                enum:
+                    - 1
+                    - 2
+                    - 3
+                    - 4
+                    - 5
+                    - 6
+                default: 1
+            time:
+                type: integer
+                display_name: Impulse Period in ms
+                min: 10
+                max: 60000
+                default: 20
+        ui:
+            quick_access: true
+    set:
+        group: settings
+        display_name: Configuration
+        description: Set configuration
+        arguments:
+            param:
+                type: string
+                display_name: Option
+                enum:
+                    - on_boot
+                    - on_disconnect 
+            value:
+                required: true
+                type: string
+                display_name: Value
+                enum:
+                    - Open
+                    - Close
+                    - Respect
+
+telemetry:
+    on_boot: 
+        type: string
+        enum:
+            - Respect
+            - Close
+            - Open
+        display_name: On Boot State
+    on_disconnect:
+        type: string
+        enum: 
+            - Respect
+            - Close
+            - Open
+        display_name: On Disconnect State
+    r1: 
+        type: boolean
+        display_name: Relay 1
+    r2: 
+        type: boolean
+        display_name: Relay 2
+    r3: 
+        type: boolean
+        display_name: Relay 3
+    r4: 
+        type: boolean
+        display_name: Relay 4 
+    r5: 
+        type: boolean
+        display_name: Relay 5
+    r6: 
+        type: boolean
+        display_name: Relay 6

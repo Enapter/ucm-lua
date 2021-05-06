@@ -1,100 +1,106 @@
---[[ 
-Copyright 2021 Enapter
-Licensed under the Apache License, Version 2.0 (the “License”);
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at 
-    http://www.apache.org/licenses/LICENSE-2.0 
-Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an
-“AS IS” BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and limitations under the License.
---]]
+-- Copyright 2021 Enapter
 
-enapter = cloud.new("rl6", "v1")
+-- Licensed under the Apache License, Version 2.0 (the "License");
+-- you may not use this file except in compliance with the License.
+-- You may obtain a copy of the License at
 
--- set default values for relays 0 (open)
+--     http://www.apache.org/licenses/LICENSE-2.0
+
+-- Unless required by applicable law or agreed to in writing, software
+-- distributed under the License is distributed on an "AS IS" BASIS,
+-- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+-- See the License for the specific language governing permissions and
+-- limitations under the License.
+
+-- Set default values for relays during first run (Open)
 for relay = 1,6,1 do
-    result, relay_status = storage.read("r"..tostring(relay))
+    relay_status, result = storage.read("r"..tostring(relay))
     if result ~= 0 then
-        print ("Writing default value 0 for r",relay)
+        enapter.log("Writing default value 0 for r" .. relay)
         storage.write("r"..tostring(relay),"0")
     end
 end
 
--- set default value on connection lost: 3 - respect the state (default), 2 - all closed, 1 - all open
-result, on_disconnect = storage.read("on_disconnect")
-if result ~= 0 or tonumber(on_disconnect) > 3 then
-    storage.write("on_disconnect", "3")
+-- Set default behaviour on connection lost during first run: 
+-- Respect - respect the state (default) 
+-- Close - all closed,
+-- Open - all open
+on_disconnect, result = storage.read("on_disconnect")
+if result ~= 0 or
+    on_disconnect ~= "Open" or 
+        on_disconnect ~= "Close" or
+            on_disconnect ~= "Respect" then
+                storage.write("on_disconnect", "Respect")
 end
 
 function restore_state ()
-    print ("Restore relay state")
+    enapter.log("Restore relay state")
     for relay = 1,6,1 do
-        result, relay_status = storage.read("r"..tostring(relay))
+        relay_status, result = storage.read("r"..tostring(relay))
         if result == 0 then
-            if relay_status == tostring(1) then 
+            if relay_status == "Close" then 
                 if rl6.close(relay) then
-                    print ("Relay " .. tostring(relay) .. " close" )
+                    enapter.log("Relay " .. tostring(relay) .. " close" )
                 end
             else
                 if rl6.open(relay) then
-                    print ("Relay " .. tostring(relay) .. " open" )
+                    enapter.log("Relay " .. tostring(relay) .. " open" )
                 end
             end
         end
     end
 end
 
--- set default value on boot: 3 - respect the state, 2 - all closed, 1 - all open (default)
-result, on_boot = storage.read("on_boot")
-if result ~= 0 or tonumber(on_boot) > 3 then
-    storage.write("on_boot", "1")
-    print ("Can't read default on_boot state. Open all relays by default and set on_boot to 1.")
-    rl6.set_all(false)
+-- Set default behaviour on boot: 
+-- Respect - respect the state, 
+-- Close - all closed, 
+-- Open - all open (default)
+on_boot, result = storage.read("on_boot")
+if  result ~= 0 or 
+    on_boot ~= "Open" or
+        on_boot ~= "Close" or 
+            on_boot ~= "Respect" then
+                storage.write("on_boot", "Open")
+                enapter.log("Can't read on_boot state. Open all relays and set on_boot to Open.")
+                rl6.open_all()
 else
-    if on_boot == tostring(3) then 
-        print ("Restore last relays state on boot")
+    if on_boot == "Respect" then 
+        enapter.log("Restore last relays state on boot")
         restore_state()
-    elseif on_boot == tostring(2) then
-        print ("Close all relays on boot")
-        rl6.set_all(true)
-    elseif on_boot == tostring(1) then
-        print ("Open all relays on boot")
-        rl6.set_all(false)
+    elseif on_boot == "Close" then
+        enapter.log("Close all relays on boot")
+        rl6.close_all()
+    elseif on_boot == "Open" then
+        enapter.log("Open all relays on boot")
+        rl6.open_all()
     end
-    
 end
 
-cloud.on_status_changed (function (status)
-    print ("Connection to Cloud: ", status)
-
+cloud.on_connection_status_changed (function (status)
     if status then 
         restore_state()
     else 
-        result, on_disconnect = storage.read("on_disconnect")
+        on_disconnect, result = storage.read("on_disconnect")
         if result == 0 then
-            if on_disconnect == tostring(1) then 
-                print ("Open all relays")
-                rl6.set_all(false)
-            elseif on_disconnect == tostring(2) then
-                print ("Close all relays")
-                rl6.set_all(true)
-            elseif on_disconnect == tostring(3) then
-                print ("Respect last relays state")
+            if on_disconnect == "Open" then 
+                rl6.open_all()
+            elseif on_disconnect == "Close" then
+                rl6.close_all()
+            elseif on_disconnect == "Respect" then
             end
         else
-            print ("Can't read default settings. Open all relays")
-            rl6.set_all(false)
+            rl6.open_all()
         end
     end
 end)
 
 function registration()
     enapter:send_registration({ vendor = "Enapter", model = "ENP-RL6" })
-    print ("Time: " .. os.time())
 end
 
-function metrics()
+function telemetry()
     local telemetry = {}
+
     telemetry["r1"] = rl6.get(1)
     telemetry["r2"] = rl6.get(2)
     telemetry["r3"] = rl6.get(3)
@@ -102,132 +108,121 @@ function metrics()
     telemetry["r5"] = rl6.get(5)
     telemetry["r6"] = rl6.get(6)
     
-    result, data = storage.read("on_boot")
+    data, result = storage.read("on_boot")
     if result then telemetry["on_boot"] = data end
 
-    result, data = storage.read("on_disconnect")
+    data, result = storage.read("on_disconnect")
     if result then telemetry["on_disconnect"] = data end
 
     enapter:send_telemetry(telemetry)
 end
 
-enapter:register_command_handler("open", function (ctx, args)
+enapter.register_command_handler("open", function (ctx, args)
     if args and args["id"] ~= nil then 
         id = math.floor(args["id"])
-        print("Received open command for relay " .. id)
-        if rl6.get(id) == false then 
-            return 0
-        else
-            if rl6.open(id) == 0 then
-                storage.write("r"..tostring(id), "0")
-                print("Relay " .. id .. " opened")
-                return 0
-            else
-                print("Error opening relay " .. id)
-                return 1
-            end
+        enapter.log("Received open command for relay " .. id)
+        if rl6.get(id) == true then
+          local result = rl6.open(id) 
+          if result == 0 then
+              storage.write("r"..tostring(id), "0")
+              enapter.log("Relay " .. id .. " opened")
+          else
+              enapter.log("Error opening relay " .. id)
+              ctx.error(cloud.err_to_str(result))
+          end
         end
     else
-        print("Wrong arguments for open relay command")
-        return 1
+        enapter.log("Wrong arguments for open relay command")
+        ctx.error("Wrong arguments for open relay command")
     end  
 end)
 
-enapter:register_command_handler("close", function (ctx, args)
+enapter.register_command_handler("close", function (ctx, args)
     if args and args["id"] ~= nil then 
         id = math.floor(args["id"])
-        print("Received close command for relay " .. id)
-        if rl6.get(id) == true then 
-            return 0
-        else
-            if rl6.close(id) == 0 then
-                storage.write("r"..tostring(id), "1")
-                print("Relay " .. id .. " closed")
-                return 0
-            else
-                print("Error closing relay " .. id)
-                return 1
-            end
+        enapter.log("Received close command for relay " .. id)
+        if rl6.get(id) == false then 
+          local result = rl6.close(id)
+          if result == 0 then
+            storage.write("r"..tostring(id), "1")
+            enapter.log("Relay " .. id .. " closed")
+          else
+            enapter.log("Error closing relay " .. id)
+            ctx.error(cloud.err_to_str(result))
+          end
         end
     else
-        print("Wrong arguments for close relay command")
-        return 1
+        enapter.log("Wrong arguments for close relay command")
+        ctx.error("Wrong arguments for close relay command")
     end 
 end)
 
-enapter:register_command_handler("impulse", function (ctx, args)
+enapter.register_command_handler("impulse", function (ctx, args)
     if args and args["id"] ~= nil and args["time"] ~= nil then 
         id = math.floor(args["id"])
         period = math.floor(args["time"])
-        print("Received impulse command for relay " .. id .. " for period " .. period .. " ms")
-        if rl6.impulse(id, period) == 0 then
-            print("Relay " .. id .. " impulsed for period " .. period .. " ms")
-            return 0
+        enapter.log("Received impulse command for relay " .. id .. " period " .. period .. " ms")
+        local result = rl6.impulse(id, period)
+        if result == 0 then
+            enapter.log("Relay " .. id .. " impulsed for period " .. period .. " ms")
         else
-            print("Error impulsing relay " .. id .. " for period " .. period .. " ms")
-            return 1
+            enapter.log("Error impulsing relay " .. id .. " for period " .. period .. " ms")
+            ctx.error(err_to_str(result))
         end
     else
-        print("Wrong arguments for impulse relay command")
-        return 1
+        enapter.log("Wrong arguments for impulse relay command")
+        ctx.error("Wrong arguments for impulse relay command")
     end 
 end)
 
-enapter:register_command_handler("toggle", function (ctx, args)
+enapter.register_command_handler("toggle", function (ctx, args)
     if args and args["id"] ~= nil then 
         id = math.floor(args["id"])
-        print("Received toggle command for relay " .. id)
+        enapter.log("Received toggle command for relay " .. id)
         if rl6.get(id) == true then 
-            if rl6.open(id) == 0 then
+            local result = rl6.open(id)
+            if result == 0 then
                 storage.write("r"..tostring(id), "0")
-                print("Relay " .. id .. " opened")
-                return 0
+                enapter.log("Relay " .. id .. " opened")
             else
-                print("Error toggle/open relay " .. id)
-                return 1
+                enapter.log("Error toggle/open relay " .. id)
+                ctx.error(err_to_str(result))
             end
         else
-            if rl6.close(id) == 0 then
+            local result = rl6.close(id)
+            if result == 0 then
                 storage.write("r"..tostring(id), "1")
-                print("Relay " .. id .. " closed")
-                return 0
+                enapter.log("Relay " .. id .. " closed")
             else
-                print("Error toggle/close relay " .. id)
-                return 1
+                enapter.log("Error toggle/close relay " .. id)
+                ctx.error(err_to_str(result))
             end
         end
     else
-        print("Wrong arguments for open relay command")
-        return 1
+        enapter.log("Wrong arguments for open relay command")
+        ctx.error("Wrong arguments for toggle relay command")
     end  
 end)
 
-enapter:register_command_handler("set", function (ctx, args)
+enapter.register_command_handler("set", function (ctx, args)
     if args then
-        result = 1
-        for command, arg in pairs (args) do
-            if command == "on_boot" then
-                storage.write("on_boot", tostring(arg))
-                print ("Set on_boot to " .. tostring(arg))
-                result = 0
-            end
-            if command == "on_disconnect" then
-                storage.write("on_disconnect", tostring(arg))
-                print ("Set on_disconnect to " .. tostring(arg))
-                result = 0
-            end
+        param = args["param"]
+        value = args["value"]
+        if param == "on_boot" then
+            storage.write("on_boot", value)
+            enapter.log("Set on_boot to " .. value)
+            ctx.log("Set on_boot to " .. value)
         end
-    
-        if result ~= 0 then 
-            print ("Unkonwn settings")
+        if param == "on_disconnect" then
+            storage.write("on_disconnect", value)
+            enapter.log("Set on_disconnect to " .. value)
+            ctx.log("Set on_disconnect to " .. value)
         end
-
-        return result
     else
-        print("Wrong arguments for set command")
-        return 1
+        enapter.log("Wrong arguments for set command")
+        ctx.error("Wrong arguments for set command")
     end 
 end)
 
 scheduler.add(10000, registration)
-scheduler.add(1000, metrics)
+scheduler.add(1000, telemetry)
