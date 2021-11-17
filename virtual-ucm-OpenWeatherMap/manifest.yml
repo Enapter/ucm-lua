@@ -1,0 +1,28 @@
+blueprint_spec: "device/1.0"
+display_name: OpenWeather API
+description: |
+  This Blueprint integrates OpenWeather API to get current temperature and humidity. When temperature goes below 3C status changed to "Risk of Ice".
+
+icon: weather-cloudy
+
+communication_modules:
+  enp-virtual:
+    product: ENP-VIRTUAL
+    lua_file: firmware.lua
+
+telemetry:
+  temperature: 
+    communication_module: enp-virtual
+    type: float
+    display_name: Current Air Temperature, C
+  humidity: 
+    communication_module: enp-virtual
+    type: float
+    display_name: Current Air Humidity, %
+  status:
+    communication_module: enp-virtual
+    type: string
+    enum:
+        - OK
+        - Risk of Ice
+    display_name: Status
