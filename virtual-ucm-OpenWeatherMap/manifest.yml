@@ -19,6 +19,10 @@ telemetry:
     communication_module: enp-virtual
     type: float
     display_name: Current Air Humidity, %
+  clouds:
+    communication_module: enp-virtual
+    type: float
+    display_name: Cloudiness, %
   status:
     communication_module: enp-virtual
     type: string

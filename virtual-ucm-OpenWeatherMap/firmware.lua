@@ -3,6 +3,7 @@ connection = http.client ({timeout = 10})
 
 temperature = 0
 humidity = 0
+clouds = 0
 
 -- Check README.md
 cityid = "YOUR_CITY_ID"
@@ -16,8 +17,10 @@ function weather()
     t = json.decode(result.body)
     enapter.log("Temperature " .. tostring(t["main"]["temp"]))
     enapter.log("Humidity " .. tostring(t["main"]["humidity"]))
+    enapter.log("Cloudiness " .. tostring(t["clouds"]["all"]))
     temperature = tonumber(t["main"]["temp"])
     humidity = tonumber(t["main"]["humidity"])
+    clouds = tonumber(t["clouds"]["all"])
   end
 end
 
@@ -26,6 +29,7 @@ function telemetry()
   
   telemetry["temperature"] = temperature
   telemetry["humidity"] = humidity
+  telemetry["clouds"] = clouds
   
   if temperature < 3 then
     telemetry["status"] = "Risk of Ice"
