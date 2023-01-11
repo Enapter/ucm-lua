@@ -1,5 +1,6 @@
-**Warning**
-This repository is outdated. Although most of the examples will continue to work all functionality was replaced and extended with [Enapter Blueprint Marketplave](https://marketplace.enapter.com)
+> **Warning**
+>
+> This repository is outdated. Although most of the examples will continue to work all functionality was replaced and extended with [Enapter Blueprint Marketplave](https://marketplace.enapter.com)
 
 This is a repository for scripts, created for integrating devices via Lua SDK.
 
